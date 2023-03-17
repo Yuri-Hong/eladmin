@@ -20,7 +20,6 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.parser.ParserConfig;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import lombok.extern.slf4j.Slf4j;
-import me.zhengjie.utils.StringUtils;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -39,11 +38,13 @@ import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.RedisSerializer;
+import reactor.util.annotation.Nullable;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+
 
 /**
  * @author Zheng Jie
@@ -65,7 +66,7 @@ public class RedisConfig extends CachingConfigurerSupport {
         FastJsonRedisSerializer<Object> fastJsonRedisSerializer = new FastJsonRedisSerializer<>(Object.class);
         RedisCacheConfiguration configuration = RedisCacheConfiguration.defaultCacheConfig();
         configuration = configuration.serializeValuesWith(RedisSerializationContext.
-                SerializationPair.fromSerializer(fastJsonRedisSerializer)).entryTtl(Duration.ofHours(6));
+                SerializationPair.fromSerializer(fastJsonRedisSerializer)).entryTtl(Duration.ofHours(2));
         return configuration;
     }
 
@@ -79,10 +80,18 @@ public class RedisConfig extends CachingConfigurerSupport {
         // value值的序列化采用fastJsonRedisSerializer
         template.setValueSerializer(fastJsonRedisSerializer);
         template.setHashValueSerializer(fastJsonRedisSerializer);
-        // 全局开启AutoType，这里方便开发，使用全局的方式
-        ParserConfig.getGlobalInstance().setAutoTypeSupport(true);
-        // 建议使用这种方式，小范围指定白名单
-        // ParserConfig.getGlobalInstance().addAccept("me.zhengjie.domain");
+        // fastjson 升级到 1.2.83 后需要指定序列化白名单
+        ParserConfig.getGlobalInstance().addAccept("me.zhengjie.domain");
+        ParserConfig.getGlobalInstance().addAccept("me.zhengjie.service.dto");
+        // 模块内的实体类
+        ParserConfig.getGlobalInstance().addAccept("me.zhengjie.modules.mnt.domain");
+        ParserConfig.getGlobalInstance().addAccept("me.zhengjie.modules.quartz.domain");
+        ParserConfig.getGlobalInstance().addAccept("me.zhengjie.modules.system.domain");
+        // 模块内的 Dto
+        ParserConfig.getGlobalInstance().addAccept("me.zhengjie.modules.mnt.service.dto");
+        ParserConfig.getGlobalInstance().addAccept("me.zhengjie.modules.quartz.service.dto");
+        ParserConfig.getGlobalInstance().addAccept("me.zhengjie.modules.security.service.dto");
+        ParserConfig.getGlobalInstance().addAccept("me.zhengjie.modules.system.service.dto");
         // key的序列化采用StringRedisSerializer
         template.setKeySerializer(new StringRedisSerializer());
         template.setHashKeySerializer(new StringRedisSerializer());
@@ -97,7 +106,7 @@ public class RedisConfig extends CachingConfigurerSupport {
     @Override
     public KeyGenerator keyGenerator() {
         return (target, method, params) -> {
-            Map<String,Object> container = new HashMap<>(3);
+            Map<String,Object> container = new HashMap<>(8);
             Class<?> targetClassClass = target.getClass();
             // 类地址
             container.put("class",targetClassClass.toGenericString());
@@ -203,13 +212,14 @@ class StringRedisSerializer implements RedisSerializer<Object> {
         return (bytes == null ? null : new String(bytes, charset));
     }
 
-    @Override
-    public byte[] serialize(Object object) {
-        String string = JSON.toJSONString(object);
-        if (StringUtils.isBlank(string)) {
-            return null;
-        }
-        string = string.replace("\"", "");
-        return string.getBytes(charset);
-    }
+	@Override
+	public @Nullable byte[] serialize(Object object) {
+		String string = JSON.toJSONString(object);
+
+		if (org.apache.commons.lang3.StringUtils.isBlank(string)) {
+			return null;
+		}
+		string = string.replace("\"", "");
+		return string.getBytes(charset);
+	}
 }

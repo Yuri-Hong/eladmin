@@ -20,7 +20,6 @@ import com.wf.captcha.base.Captcha;
 import lombok.Data;
 import me.zhengjie.exception.BadConfigurationException;
 import me.zhengjie.utils.StringUtils;
-
 import java.awt.*;
 import java.util.Objects;
 
@@ -40,17 +39,10 @@ public class LoginProperties {
 
     private LoginCode loginCode;
 
-    /**
-     * 用户登录信息缓存
-     */
-    private boolean cacheEnable;
+    public static final String cacheKey = "USER-LOGIN-DATA";
 
     public boolean isSingleLogin() {
         return singleLogin;
-    }
-
-    public boolean isCacheEnable() {
-        return cacheEnable;
     }
 
     /**
@@ -62,7 +54,7 @@ public class LoginProperties {
         if (Objects.isNull(loginCode)) {
             loginCode = new LoginCode();
             if (Objects.isNull(loginCode.getCodeType())) {
-                loginCode.setCodeType(LoginCodeEnum.arithmetic);
+                loginCode.setCodeType(LoginCodeEnum.ARITHMETIC);
             }
         }
         return switchCaptcha(loginCode);
@@ -76,33 +68,31 @@ public class LoginProperties {
      */
     private Captcha switchCaptcha(LoginCode loginCode) {
         Captcha captcha;
-        synchronized (this) {
-            switch (loginCode.getCodeType()) {
-                case arithmetic:
-                    // 算术类型 https://gitee.com/whvse/EasyCaptcha
-                    captcha = new FixedArithmeticCaptcha(loginCode.getWidth(), loginCode.getHeight());
-                    // 几位数运算，默认是两位
-                    captcha.setLen(loginCode.getLength());
-                    break;
-                case chinese:
-                    captcha = new ChineseCaptcha(loginCode.getWidth(), loginCode.getHeight());
-                    captcha.setLen(loginCode.getLength());
-                    break;
-                case chinese_gif:
-                    captcha = new ChineseGifCaptcha(loginCode.getWidth(), loginCode.getHeight());
-                    captcha.setLen(loginCode.getLength());
-                    break;
-                case gif:
-                    captcha = new GifCaptcha(loginCode.getWidth(), loginCode.getHeight());
-                    captcha.setLen(loginCode.getLength());
-                    break;
-                case spec:
-                    captcha = new SpecCaptcha(loginCode.getWidth(), loginCode.getHeight());
-                    captcha.setLen(loginCode.getLength());
-                    break;
-                default:
-                    throw new BadConfigurationException("验证码配置信息错误！正确配置查看 LoginCodeEnum ");
-            }
+        switch (loginCode.getCodeType()) {
+            case ARITHMETIC:
+                // 算术类型 https://gitee.com/whvse/EasyCaptcha
+                captcha = new FixedArithmeticCaptcha(loginCode.getWidth(), loginCode.getHeight());
+                // 几位数运算，默认是两位
+                captcha.setLen(loginCode.getLength());
+                break;
+            case CHINESE:
+                captcha = new ChineseCaptcha(loginCode.getWidth(), loginCode.getHeight());
+                captcha.setLen(loginCode.getLength());
+                break;
+            case CHINESE_GIF:
+                captcha = new ChineseGifCaptcha(loginCode.getWidth(), loginCode.getHeight());
+                captcha.setLen(loginCode.getLength());
+                break;
+            case GIF:
+                captcha = new GifCaptcha(loginCode.getWidth(), loginCode.getHeight());
+                captcha.setLen(loginCode.getLength());
+                break;
+            case SPEC:
+                captcha = new SpecCaptcha(loginCode.getWidth(), loginCode.getHeight());
+                captcha.setLen(loginCode.getLength());
+                break;
+            default:
+                throw new BadConfigurationException("验证码配置信息错误！正确配置查看 LoginCodeEnum ");
         }
         if(StringUtils.isNotBlank(loginCode.getFontName())){
             captcha.setFont(new Font(loginCode.getFontName(), Font.PLAIN, loginCode.getFontSize()));

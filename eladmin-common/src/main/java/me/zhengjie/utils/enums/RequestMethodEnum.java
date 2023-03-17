@@ -20,7 +20,7 @@ import lombok.Getter;
 
 /**
  * @author Zheng Jie
- * @website https://el-admin.vip
+ * @website https://eladmin.vip
  * @description
  * @date 2020-06-10
  **/
@@ -65,7 +65,7 @@ public enum RequestMethodEnum {
 
     public static RequestMethodEnum find(String type) {
         for (RequestMethodEnum value : RequestMethodEnum.values()) {
-            if (type.equals(value.getType())) {
+            if (value.getType().equals(type)) {
                 return value;
             }
         }

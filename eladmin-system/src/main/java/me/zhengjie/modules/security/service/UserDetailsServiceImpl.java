@@ -16,64 +16,41 @@
 package me.zhengjie.modules.security.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import me.zhengjie.exception.BadRequestException;
 import me.zhengjie.exception.EntityNotFoundException;
-import me.zhengjie.modules.security.config.bean.LoginProperties;
 import me.zhengjie.modules.security.service.dto.JwtUserDto;
 import me.zhengjie.modules.system.service.DataService;
 import me.zhengjie.modules.system.service.RoleService;
 import me.zhengjie.modules.system.service.UserService;
-import me.zhengjie.modules.system.service.dto.UserDto;
+import me.zhengjie.modules.system.service.dto.UserLoginDto;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Zheng Jie
  * @date 2018-11-22
  */
+@Slf4j
 @RequiredArgsConstructor
 @Service("userDetailsService")
 public class UserDetailsServiceImpl implements UserDetailsService {
     private final UserService userService;
     private final RoleService roleService;
     private final DataService dataService;
-    private final LoginProperties loginProperties;
-
-    public void setEnableCache(boolean enableCache) {
-        this.loginProperties.setCacheEnable(enableCache);
-    }
-
-    /**
-     * 用户信息缓存
-     *
-     * @see {@link UserCacheClean}
-     */
-    static Map<String, JwtUserDto> userDtoCache = new ConcurrentHashMap<>();
+    private final UserCacheManager userCacheManager;
 
     @Override
     public JwtUserDto loadUserByUsername(String username) {
-        boolean searchDb = true;
-        JwtUserDto jwtUserDto = null;
-        if (loginProperties.isCacheEnable() && userDtoCache.containsKey(username)) {
-            jwtUserDto = userDtoCache.get(username);
-            // 检查dataScope是否修改
-            List<Long> dataScopes = jwtUserDto.getDataScopes();
-            dataScopes.clear();
-            dataScopes.addAll(dataService.getDeptIds(jwtUserDto.getUser()));
-            searchDb = false;
-        }
-        if (searchDb) {
-            UserDto user;
+        JwtUserDto jwtUserDto = userCacheManager.getUserCache(username);
+        if(jwtUserDto == null){
+            UserLoginDto user;
             try {
-                user = userService.findByName(username);
+                user = userService.getLoginData(username);
             } catch (EntityNotFoundException e) {
                 // SpringSecurity会自动转换UsernameNotFoundException为BadCredentialsException
-                throw new UsernameNotFoundException("", e);
+                throw new UsernameNotFoundException(username, e);
             }
             if (user == null) {
                 throw new UsernameNotFoundException("");
@@ -86,7 +63,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                         dataService.getDeptIds(user),
                         roleService.mapToGrantedAuthorities(user)
                 );
-                userDtoCache.put(username, jwtUserDto);
+                // 添加缓存数据
+                userCacheManager.addUserCache(username, jwtUserDto);
             }
         }
         return jwtUserDto;

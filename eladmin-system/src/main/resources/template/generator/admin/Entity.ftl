@@ -37,7 +37,7 @@ import java.math.BigDecimal;
 import java.io.Serializable;
 
 /**
-* @website https://el-admin.vip
+* @website https://eladmin.vip
 * @description /
 * @author ${author}
 * @date ${date}
@@ -55,7 +55,7 @@ public class ${className} implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     </#if>
     </#if>
-    @Column(name = "${column.columnName}"<#if column.columnKey = 'UNI'>,unique = true</#if><#if column.istNotNull && column.columnKey != 'PRI'>,nullable = false</#if>)
+    @Column(name = "`${column.columnName}`"<#if column.columnKey = 'UNI'>,unique = true</#if><#if column.istNotNull && column.columnKey != 'PRI'>,nullable = false</#if>)
     <#if column.istNotNull && column.columnKey != 'PRI'>
         <#if column.columnType = 'String'>
     @NotBlank
