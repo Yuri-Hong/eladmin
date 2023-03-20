@@ -26,7 +26,7 @@ spring:
 
   redis:
     #数据库索引
-    database: ${REDIS_DB:0}
+    database: ${REDIS_DB:1}
     host: ${REDIS_HOST:127.0.0.1}
     port: ${REDIS_PORT:6379}
     password: ${REDIS_PWD:}
@@ -35,19 +35,21 @@ spring:
 
 task:
   pool:
+    # 1、CPU密集型：线程数少一点，推荐：CPU内核数+1
+    # 2、IO密集型：线程数多一些，推荐：一般CPU内核数 * 2
     # 核心线程池大小
-    core-pool-size: 10
+    core-pool-size: 5
     # 最大线程数
-    max-pool-size: 30
+    max-pool-size: 10
     # 活跃时间
     keep-alive-seconds: 60
     # 队列容量
-    queue-capacity: 50
+    queue-capacity: 30
 
 #七牛云
 qiniu:
   # 文件大小 /M
-  max-size: 15
+  max-size: 1
 
 #邮箱验证码有效时间/秒
 code:
